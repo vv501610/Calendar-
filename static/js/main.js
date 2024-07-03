@@ -2,7 +2,19 @@ document.addEventListener('DOMContentLoaded', function() {
     var calendarEl = document.getElementById('calendar');
     var calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
-        events: '/events',
+        events: function(fetchInfo, successCallback, failureCallback) {
+            // 기존 이벤트를 초기화하고 다시 불러옵니다.
+            fetch('/events')
+                .then(response => response.json())
+                .then(data => {
+                    // 기존 이벤트를 지우고 새로운 이벤트를 추가합니다.
+                    calendar.removeAllEvents();
+                    successCallback(data);
+                })
+                .catch(error => {
+                    failureCallback(error);
+                });
+        },
         eventDidMount: function(info) {
             var eventDate = new Date(info.event.start);
             var today = new Date();
