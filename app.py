@@ -1,7 +1,13 @@
 from flask import Flask, render_template, jsonify, request
-app = Flask(__name__)
+from models import db, Event
 
-events = []
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///events.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db.init_app(app)
+
+with app.app_context():
+    db.create_all()
 
 @app.route('/')
 def index():
@@ -10,10 +16,14 @@ def index():
 @app.route('/events', methods=['GET', 'POST'])
 def events_route():
     if request.method == 'POST':
-        event = request.json
-        events.append(event)
-        return jsonify(event), 201
-    return jsonify(events)
+        event_data = request.json
+        new_event = Event(title=event_data['title'], start=event_data['start'], end=event_data['end'])
+        db.session.add(new_event)
+        db.session.commit()
+        return jsonify(new_event.to_dict()), 201
+
+    events = Event.query.all()
+    return jsonify([event.to_dict() for event in events])
 
 if __name__ == '__main__':
-    app.run(debug = True)
+    app.run(debug=True)
