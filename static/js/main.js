@@ -3,11 +3,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         events: function(fetchInfo, successCallback, failureCallback) {
-            // 기존 이벤트를 초기화하고 다시 불러옵니다.
             fetch('/events')
                 .then(response => response.json())
                 .then(data => {
-                    // 기존 이벤트를 지우고 새로운 이벤트를 추가합니다.
                     calendar.removeAllEvents();
                     successCallback(data);
                 })
@@ -51,7 +49,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 fetch('/events', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrf_token')  // CSRF 토큰 추가
                     },
                     body: JSON.stringify(event)
                 })
@@ -65,3 +64,19 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     calendar.render();
 });
+
+// CSRF 토큰을 가져오는 함수
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}

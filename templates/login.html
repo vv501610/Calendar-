@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 및 회원가입</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body>
+    <div class="container" id="loginContainer">
+        <h2>로그인</h2>
+        <form action="{{ url_for('login') }}" method="POST">
+            <label for="loginUsername">아이디:</label>
+            <input type="text" id="loginUsername" name="username" required>
+            <label for="loginPassword">비밀번호:</label>
+            <input type="password" id="loginPassword" name="password" required>
+            <button type="submit">로그인</button>
+        </form>
+        <button class="button" id="showSignup">회원가입</button>
+    </div>
+
+    <div class="container hidden" id="signupContainer">
+        <h2>회원가입</h2>
+        <form action="{{ url_for('signup') }}" method="POST">
+            <label for="signupUsername">아이디:</label>
+            <input type="text" id="signupUsername" name="username" required>
+            <label for="signupPassword">비밀번호:</label>
+            <input type="password" id="signupPassword" name="password" required>
+            <button type="submit">회원가입</button>
+        </form>
+        <button class="button" id="showLogin">로그인</button>
+    </div>
+
+    <script>
+        document.getElementById('showSignup').addEventListener('click', function() {
+            document.getElementById('loginContainer').classList.add('hidden');
+            document.getElementById('signupContainer').classList.remove('hidden');
+        });
+
+        document.getElementById('showLogin').addEventListener('click', function() {
+            document.getElementById('signupContainer').classList.add('hidden');
+            document.getElementById('loginContainer').classList.remove('hidden');
+        });
+    </script>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <script>
+                {% for message in messages %}
+                    alert("{{ message }}");
+                {% endfor %}
+            </script>
+        {% endif %}
+    {% endwith %}
+</body>
+</html>
