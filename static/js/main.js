@@ -1,18 +1,37 @@
 document.addEventListener('DOMContentLoaded', function() {
     var calendarEl = document.getElementById('calendar');
+    var holidays = []; // 공휴일 추가
     var calendar = new FullCalendar.Calendar(calendarEl, {
+        googleCalendarApiKey: "AIzaSyDJMW46KlS9mjPYpcUn5dbudBk2TDtXrQo",  // 구글 api키
         initialView: 'dayGridMonth',
-        events: function(fetchInfo, successCallback, failureCallback) {
-            fetch('/events')
-                .then(response => response.json())
-                .then(data => {
-                    calendar.removeAllEvents();
-                    successCallback(data);
-                })
-                .catch(error => {
-                    failureCallback(error);
-                });
+        locale: 'ko',  // 한국어로 설정
+        events: async function(fetchInfo, successCallback, failureCallback) {
+            try {
+                // 일반 이벤트 불러오기
+                const response = await fetch('/events');
+                const data = await response.json();
+                // 공휴일 데이터 가져오기
+                const holidayResponse = await fetch(
+                    `https://www.googleapis.com/calendar/v3/calendars/ko.south_korea%23holiday%40group.v.calendar.google.com/events?key=${calendar.getOption('googleCalendarApiKey')}`
+                );
+                const holidayData = await holidayResponse.json();
+                const holidays = holidayData.items.map(event => ({
+                    title: event.summary,
+                    start: event.start.date || event.start.dateTime,
+                    end: event.end.date || event.end.dateTime,
+                    backgroundColor: 'red',
+                    className: 'holiday'
+                }));
+
+                // 기존 이벤트에 공휴일 이벤트를 추가
+                const allEvents = data.concat(holidays);
+                calendar.removeAllEvents();
+                successCallback(allEvents);
+            } catch (error) {
+                failureCallback(error);
+            }
         },
+
         eventDidMount: function(info) {
             var eventDate = new Date(info.event.start);
             var today = new Date();
@@ -39,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         selectable: true,
         select: function(info) {
-            var title = prompt('이벤트 제목:');
+            var title = prompt('일정:');
             if (title) {
                 var event = {
                     title: title,
@@ -60,6 +79,40 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
             calendar.unselect();
+        },
+        eventClick: function(info) {
+            var eventObj = info.event;
+            var editTitle = prompt('일정 수정:', eventObj.title);
+            if (editTitle !== null) {
+                eventObj.setProp('title', editTitle);
+                var event = {
+                    id: eventObj.id,
+                    title: editTitle,
+                    start: eventObj.startStr,
+                    end: eventObj.endStr
+                };
+                fetch(`/events/${event.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrf_token')
+                    },
+                    body: JSON.stringify(event)
+                });
+            }
+            var deleteConfirm = confirm('일정을 삭제하시겠습니까?');
+            if (deleteConfirm) {
+                fetch(`/events/${eventObj.id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrf_token')
+                    }
+                })
+                .then(() => {
+                    eventObj.remove();
+                });
+            }
         }
     });
     calendar.render();
